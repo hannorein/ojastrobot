@@ -2,7 +2,7 @@ import requests
 import os.path
 from mastodon import Mastodon
 import feedparser
-NewsFeed = feedparser.parse("https://astro.theoj.org/feed")
+feed = feedparser.parse("https://astro.theoj.org/feed")
 with open("mastodonkeys.txt") as f:
     lines = f.readlines()
     MASTODON_ACCESS_TOKEN, = [l.strip() for l in lines]
@@ -24,7 +24,7 @@ oldc = [l.strip() for l in oldc]
 
 debug = False # "2020arXiv201006614G"
 
-for entry in NewsFeed.entries:
+for entry in feed.entries:
     if "doi" in entry["id"]:
         bibcode = entry["id"]
         if bibcode not in oldc or bibcode == debug:
