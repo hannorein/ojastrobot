@@ -1,12 +1,8 @@
 import requests
 import os.path
-import tweepy
 from mastodon import Mastodon
-
-with open("twitterkeys.txt") as f:
-    lines = f.readlines()
-    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in lines]
-
+import feedparser
+NewsFeed = feedparser.parse("https://astro.theoj.org/feed")
 with open("mastodonkeys.txt") as f:
     lines = f.readlines()
     MASTODON_ACCESS_TOKEN, = [l.strip() for l in lines]
@@ -16,20 +12,6 @@ mastodon = Mastodon(
         api_base_url = "https://botsin.space/",
         )
 
-
-auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-api = tweepy.API(auth)
-
-with open("adskey.txt") as f:
-    token = f.read().strip()
-headers = {"Authorization": "Bearer "+token}
-bibcodestocheck = ["2015MNRAS.446.1424R", "2012A&A...537A.128R", "2015MNRAS.452..376R", "2018MNRAS.473.3351R", "2019MNRAS.485.5490R", "2011MNRAS.415.3168R", "2011ascl.soft10016R", "2019MNRAS.489.4632R", "2020MNRAS.491.2885T", "2023arXiv230705683J"]
-q = "citations(bibcode:"+(") or citations(bibcode:".join(bibcodestocheck))+")"
-params = {"q":q, "rows":"2000","fl":"bibcode,pub,title,author"}
-url = "https://api.adsabs.harvard.edu/v1/search/bigquery"
-r = requests.get(url, headers=headers, params=params)
-response = r.json()["response"]
 
 oldcf = "oldcitations.txt"
 firstrun = not os.path.isfile(oldcf)
@@ -42,31 +24,32 @@ oldc = [l.strip() for l in oldc]
 
 debug = False # "2020arXiv201006614G"
 
-for p in response["docs"]:
-    bibcode = p["bibcode"]
-    if bibcode not in oldc or bibcode == debug:
-        if not firstrun:
-            pub = p["pub"]
-            title = p["title"][0]
-            authors = p["author"]
-            authortxt = authors[0].split(",")[0]
-            if len(authors)==2:
-                authortxt += " & "+authors[1].split(",")[0]
-            if len(authors)>2:
-                authortxt += " et al."
-            maxlength = 280 - 25
-            text = "A new paper by "+authortxt+" has cited REBOUND:\n"+title
-            text = text.replace("&amp;","&")
-            if len(text)>maxlength:
-                text = text[:maxlength-2] + '..' 
-            url = "https://ui.adsabs.harvard.edu/abs/"+bibcode+"/abstract"
-            text += " "+ url
-            text += " #nbody #astrodon"
-            try:
-                api.update_status(text)
-            except:
-                print("Twitter error!")
-            mastodon.status_post(text)
+for entry in NewsFeed.entries:
+    if "doi" in entry["id"]:
+        bibcode = entry["id"]
+        if bibcode not in oldc or bibcode == debug:
+            if not firstrun:
+                url = entry["id"]
+                title = entry["title"]
+                summary = entry["summary"]
+
+                maxlength = 500 - len(url) - 10
+                text = title + "\n\n" + summary
+                if len(text)>maxlength:
+                    text = text[:maxlength-2] + '..' 
+                text += "\n"+ url
+                
+                try:
+                    url = entry["media_content"][0]["url"]
+                    mime_type = entry["media_content"][0]["type"]
+
+                    res = requests.get(url, stream = True)
+                    if res.status_code == 200:
+                        mp = mastodon.media_post(res.raw,mime_type=mime_type)
+                        media_ids = [mp["id"]]
+                except:
+                    media_ids = None
+                mastodon.status_post(text, media_ids=media_ids)
             if bibcode not in oldc:
                 with open(oldcf,"a") as f:
                     print(bibcode,file=f)
