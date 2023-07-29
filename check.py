@@ -40,6 +40,7 @@ for entry in NewsFeed.entries:
                 text += "\n"+ url
                 
                 try:
+                    media_ids = None
                     url = entry["media_content"][0]["url"]
                     mime_type = entry["media_content"][0]["type"]
 
