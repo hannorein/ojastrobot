@@ -1,10 +1,8 @@
-REBOUND Citation Bot
+Open Journal of Astrophysics Mastodon Bot 
 ====================
 
-This is a twitter bot which tweets whenever a new paper appears that cites the REBOUND code. 
+This is a mastodon bot which posts whenever a new paper appears on the RSS feed. 
 
-https://twitter.com/reboundbot
-
-To use this script working yourself, you will need API Keys from NASA ADS and Twitter.
+To use this script working yourself, you will need API Keys.
 
 
