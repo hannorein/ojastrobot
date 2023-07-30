@@ -34,7 +34,7 @@ for entry in feed.entries:
                 summary = entry["summary"]
 
                 maxlength = 500 - len(url) - 10
-                text = title + "\n\n" + summary
+                text = "🚨 New publication!\n\n" + title + "\n\n" + summary
                 if len(text)>maxlength:
                     text = text[:maxlength-2] + '..' 
                 text += "\n"+ url
